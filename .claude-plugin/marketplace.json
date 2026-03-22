@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-code-dashboard-plugin",
+  "description": "Claude Code usage metrics collector for team dashboard",
+  "owner": {
+    "name": "Your Company",
+    "email": "dev@example.com"
+  },
+  "plugins": [
+    {
+      "name": "claude-code-dashboard",
+      "description": "Collects Claude Code usage metrics (Skill, Subagent, external tools) and sends them to BigQuery for team-wide analytics",
+      "version": "0.1.0",
+      "author": {
+        "name": "Your Company",
+        "email": "dev@example.com"
+      },
+      "source": "./plugins/claude-code-dashboard",
+      "category": "analytics"
+    }
+  ]
+}

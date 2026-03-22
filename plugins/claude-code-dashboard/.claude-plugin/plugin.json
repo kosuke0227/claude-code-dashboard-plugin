@@ -1,0 +1,8 @@
+{
+  "name": "claude-code-dashboard",
+  "description": "Collects Claude Code usage metrics (Skill, Subagent, external tools) and sends them to BigQuery for team-wide analytics",
+  "author": {
+    "name": "Your Company",
+    "email": "dev@example.com"
+  }
+}

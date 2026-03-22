@@ -1,0 +1,27 @@
+{
+  "description": "Claude Code Dashboard - Usage metrics collector",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/collector.mjs post-tool-use",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/collector.mjs stop",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
