@@ -358,16 +358,19 @@ async function handleStop(input) {
   // 1. Parse transcript (authoritative data with tokens/model)
   const transcriptEvents = await parseTranscript(transcriptPath, sessionId, cwd);
 
-  // 2. Clear this session's buffer (transcript is the authority)
+  // 2. Read buffer events (fallback if transcript is empty/unavailable)
+  const bufferEvents = readBuffer();
   clearBuffer();
 
   // 3. Pick up failed events from previous crashed sessions
   const failedEvents = loadAndClearFailedEvents();
 
-  const allEvents = [...failedEvents, ...transcriptEvents];
+  // 4. Use transcript events if available, otherwise fall back to buffer
+  const sessionEvents = transcriptEvents.length > 0 ? transcriptEvents : bufferEvents;
+  const allEvents = [...failedEvents, ...sessionEvents];
   if (!allEvents.length) return;
 
-  // 4. Send to Ingest API
+  // 5. Send to Ingest API
   const ok = await sendToIngest(allEvents);
   if (!ok) {
     saveFailedEvents(allEvents);
