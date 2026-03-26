@@ -26,7 +26,7 @@ import { createInterface } from "node:readline";
 
 // ── Configuration ──────────────────────────────────────────────────────────
 
-const CWD_FILTER_PREFIX = join(homedir(), "work", "company");
+// CWD_FILTER_PREFIX is no longer used — all directories are tracked.
 const DASH_DIR = join(homedir(), ".claude", "claude-dash");
 const BUFFER_FILE = join(DASH_DIR, "event-buffer.jsonl");
 const CONFIG_FILE = join(DASH_DIR, "config.json");
@@ -86,17 +86,27 @@ function logError(context, err) {
   }
 }
 
-function cwdMatchesFilter(cwd) {
-  if (!cwd) return false;
-  return resolve(cwd).startsWith(CWD_FILTER_PREFIX);
-}
-
 function extractWorkspace(cwd) {
   if (!cwd) return "unknown";
   const resolved = resolve(cwd);
-  if (!resolved.startsWith(CWD_FILTER_PREFIX)) return "unknown";
-  const relative = resolved.slice(CWD_FILTER_PREFIX.length + 1);
-  return relative.split("/")[0] || "unknown";
+
+  // 1. Try git repo root name (most accurate for project identification)
+  try {
+    const gitRoot = execSync("git rev-parse --show-toplevel", {
+      encoding: "utf-8",
+      timeout: 3000,
+      cwd: resolved,
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+    if (gitRoot) {
+      const name = gitRoot.split("/").pop();
+      if (name) return name;
+    }
+  } catch { /* not a git repo — fall through */ }
+
+  // 2. Fall back to directory basename
+  const name = resolved.split("/").pop();
+  return name || "unknown";
 }
 
 function getUserEmail() {
@@ -397,12 +407,6 @@ async function main() {
   try {
     const input = await readStdin();
     const cwd = input.cwd || "";
-
-    // cwd filter: only ~/work/company/ 配下を計測
-    if (!cwdMatchesFilter(cwd)) {
-      console.log("{}");
-      process.exit(0);
-    }
 
     if (mode === "post-tool-use") {
       await handlePostToolUse(input);
