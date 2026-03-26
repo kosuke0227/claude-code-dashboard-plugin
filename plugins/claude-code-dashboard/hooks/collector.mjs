@@ -33,8 +33,21 @@ const CONFIG_FILE = join(DASH_DIR, "config.json");
 const FAILED_DIR = join(DASH_DIR, "failed");
 const ERROR_LOG = join(DASH_DIR, "error.log");
 
-const INGEST_URL = process.env.CLAUDE_DASH_INGEST_URL || "";
-const INGEST_API_KEY = process.env.CLAUDE_DASH_API_KEY || "";
+// env vars → .env ファイルフォールバック（デスクトップアプリ等で .zshrc が読まれない場合の対策）
+function loadEnvFallback(key) {
+  if (process.env[key]) return process.env[key];
+  const envFile = join(DASH_DIR, ".env");
+  try {
+    if (existsSync(envFile)) {
+      const match = readFileSync(envFile, "utf-8").match(new RegExp(`^${key}=(.+)$`, "m"));
+      if (match) return match[1].trim().replace(/^["']|["']$/g, "");
+    }
+  } catch { /* ignore */ }
+  return "";
+}
+
+const INGEST_URL = loadEnvFallback("CLAUDE_DASH_INGEST_URL");
+const INGEST_API_KEY = loadEnvFallback("CLAUDE_DASH_API_KEY");
 
 // Built-in tools — everything else is potentially MCP or custom
 const BUILTIN_TOOLS = new Set([
@@ -87,7 +100,11 @@ function extractWorkspace(cwd) {
 }
 
 function getUserEmail() {
-  // 1. git config user.email
+  // 1. environment variable or .env ファイル (明示的な上書き — git config より優先)
+  const envEmail = loadEnvFallback("CLAUDE_DASH_USER_EMAIL");
+  if (envEmail) return envEmail;
+
+  // 2. git config user.email
   try {
     const email = execSync("git config user.email", {
       encoding: "utf-8",
@@ -96,11 +113,6 @@ function getUserEmail() {
     }).trim();
     if (email) return email;
   } catch { /* ignore */ }
-
-  // 2. environment variable
-  if (process.env.CLAUDE_DASH_USER_EMAIL) {
-    return process.env.CLAUDE_DASH_USER_EMAIL;
-  }
 
   // 3. local config file
   try {
@@ -210,7 +222,7 @@ async function sendToIngest(events, maxRetries = 3) {
           Authorization: `Bearer ${INGEST_API_KEY}`,
         },
         body: JSON.stringify({ events }),
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.timeout(15_000),
       });
       if (res.ok) return true;
       // 4xx (except 429) → don't retry
