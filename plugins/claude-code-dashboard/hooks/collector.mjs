@@ -48,8 +48,11 @@ function loadEnvFallback(key) {
   const envFile = join(DASH_DIR, ".env");
   try {
     if (existsSync(envFile)) {
-      const match = readFileSync(envFile, "utf-8").match(new RegExp(`^${key}=(.+)$`, "m"));
-      if (match) return match[1].trim().replace(/^["']|["']$/g, "");
+      // 先頭 BOM を除去（メモ帳等が UTF-8 BOM で保存すると 1 行目がマッチしなくなるため）
+      const content = readFileSync(envFile, "utf-8").replace(/^﻿/, "");
+      // 同一キーが重複した場合は最後の一致を採用（値を打ち直して追記した際、古い誤値が勝たないように）
+      const matches = [...content.matchAll(new RegExp(`^${key}=(.+)$`, "gm"))];
+      if (matches.length) return matches[matches.length - 1][1].trim().replace(/^["']|["']$/g, "");
     }
   } catch { /* ignore */ }
   return "";
